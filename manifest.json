@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Time Foundry",
+  "version": "1.0.0",
+  "description": "Task management and Pomodoro timer for developers",
+  "permissions": ["storage", "notifications", "alarms", "idle"],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "icons": {
+    "16": "favicon.svg",
+    "48": "favicon.svg",
+    "128": "favicon.svg"
+  },
+  "action": {
+    "default_title": "Open Time Foundry",
+    "default_icon": {
+      "16": "favicon.svg",
+      "48": "favicon.svg",
+      "128": "favicon.svg"
+    }
+  },
+  "options_page": "index.html"
+}
