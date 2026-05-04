@@ -223,7 +223,7 @@ async function handleTimerEnd() {
 
   chrome.notifications.create(`timer-${Date.now()}`, {
     type: 'basic',
-    iconUrl: 'icons/icon48.png',
+    iconUrl: chrome.runtime.getURL('icons/icon48.png'),
     title,
     message: body,
   })
