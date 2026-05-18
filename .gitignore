@@ -29,3 +29,6 @@ releases
 # TypeScript build artifacts
 *.tsbuildinfo
 package-lock.json
+
+# Turborepo cache
+.turbo
