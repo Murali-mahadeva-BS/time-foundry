@@ -41,7 +41,7 @@ export function AppShell() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-full overflow-hidden bg-background">
+      <div className="fixed inset-0 flex overflow-hidden bg-background">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <main className="flex flex-1 flex-col overflow-hidden animate-fade-in" key={routeKey}>
