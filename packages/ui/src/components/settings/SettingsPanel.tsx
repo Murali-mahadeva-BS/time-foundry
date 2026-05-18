@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Settings, Moon, Sun, Monitor, Clock, Coffee, Zap, Timer, SkipForward, Palette, Play } from 'lucide-react'
 import { useSettingsStore } from '@ui/stores/settings.store'
 import type { Theme, ColorTheme } from '@time-foundry/core'
@@ -24,25 +24,50 @@ function SettingRow({ label, description, children }: {
   )
 }
 
-function DurationInput({ value, onChange, min = 1, max = 120 }: {
+function ClampedNumberInput({ value, onChange, suffix, min = 1, max = 120 }: {
   value: number
   onChange: (v: number) => void
+  suffix: string
   min?: number
   max?: number
 }) {
+  const [draft, setDraft] = useState(String(value))
+
+  useEffect(() => {
+    setDraft(String(value))
+  }, [value])
+
+  const commit = () => {
+    const parsed = Number.parseInt(draft, 10)
+    const next = Number.isFinite(parsed)
+      ? Math.max(min, Math.min(max, parsed))
+      : value
+    setDraft(String(next))
+    if (next !== value) onChange(next)
+  }
+
   return (
     <div className="flex items-center gap-1.5">
       <Input
         type="number"
         min={min}
         max={max}
-        value={value}
-        onChange={(e) => onChange(Math.max(min, Math.min(max, parseInt(e.target.value) || min)))}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') setDraft(String(value))
+        }}
         className="w-20 text-center"
       />
-      <span className="text-sm text-muted-foreground">min</span>
+      <span className="text-sm text-muted-foreground">{suffix}</span>
     </div>
   )
+}
+
+function DurationInput(props: Omit<Parameters<typeof ClampedNumberInput>[0], 'suffix'>) {
+  return <ClampedNumberInput {...props} suffix="min" />
 }
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
@@ -254,15 +279,13 @@ export function SettingsPanel() {
             <SettingRow label="Long break after" description="Number of sessions before a long break">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
+                <ClampedNumberInput
+                  value={settings.longBreakAfter}
+                  onChange={(v) => update({ longBreakAfter: v })}
                   min={1}
                   max={10}
-                  value={settings.longBreakAfter}
-                  onChange={(e) => update({ longBreakAfter: Math.max(1, parseInt(e.target.value) || 4) })}
-                  className="w-20 text-center"
+                  suffix="sessions"
                 />
-                <span className="text-sm text-muted-foreground">sessions</span>
               </div>
             </SettingRow>
 

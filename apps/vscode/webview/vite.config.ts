@@ -15,12 +15,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@ui': path.resolve(__dirname, '../../../packages/ui/src'),
-      '@time-foundry/core': path.resolve(__dirname, '../../../packages/core/src/index.ts'),
       // Platform overrides: VS Code's own timer + settings stores
       '@ui/stores/timer.store': path.resolve(__dirname, './src/timer-store.ts'),
       '@ui/stores/settings.store': path.resolve(__dirname, './src/settings.store.ts'),
+      '@': path.resolve(__dirname, './src'),
+      '@ui': path.resolve(__dirname, '../../../packages/ui/src'),
+      '@time-foundry/core': path.resolve(__dirname, '../../../packages/core/src/index.ts'),
     },
   },
 })

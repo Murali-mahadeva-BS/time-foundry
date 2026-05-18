@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import type { Settings, Theme, ColorTheme } from '@time-foundry/core'
 import { DEFAULT_SETTINGS } from '@time-foundry/core'
+import { onHostSettingsChange, requestHostSettings, saveHostSettings } from './vscode-bridge'
 
 const SETTINGS_KEY = 'tf_settings'
+let hostSettingsListenerAttached = false
+let lastLocalUpdateAt = 0
 
 const ALL_THEME_CLASSES = [
   'theme-sky', 'theme-deepsea', 'theme-foundry',
@@ -77,6 +80,24 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       applyTheme(DEFAULT_SETTINGS.theme)
       applyColorTheme(DEFAULT_SETTINGS.colorTheme, DEFAULT_SETTINGS.customPrimary)
     }
+
+    if (!hostSettingsListenerAttached) {
+      hostSettingsListenerAttached = true
+      onHostSettingsChange((hostSettings) => {
+        const settings: Settings = { ...DEFAULT_SETTINGS, ...hostSettings }
+        const current = get().settings
+        const hostDiffersFromCurrent = JSON.stringify(settings) !== JSON.stringify(current)
+        if (hostDiffersFromCurrent && Date.now() - lastLocalUpdateAt < 2000) return
+        set({ settings })
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+        } catch {}
+        applyTheme(settings.theme)
+        applyColorTheme(settings.colorTheme, settings.customPrimary)
+      })
+    }
+    requestHostSettings()
+
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', () => {
       if (get().settings.theme === 'system') {
@@ -87,8 +108,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   update: async (partial) => {
     const updated = { ...get().settings, ...partial }
+    lastLocalUpdateAt = Date.now()
     set({ settings: updated })
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated))
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated))
+    } catch {}
+    try {
+      saveHostSettings(updated)
+    } catch {}
     applyTheme(updated.theme)
     applyColorTheme(updated.colorTheme, updated.customPrimary)
   },

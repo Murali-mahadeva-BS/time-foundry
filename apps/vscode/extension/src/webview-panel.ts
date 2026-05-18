@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
 import * as fs from 'fs'
-import type { TimerState } from '@time-foundry/core'
+import type { Settings, TimerState } from '@time-foundry/core'
 import type { TimerHost } from './timer-host'
 
 // Messages the webview sends to the extension host
@@ -15,6 +15,8 @@ type WebviewMessage =
   | { type: 'EXTEND'; minutes: number }
   | { type: 'READY' }
   | { type: 'CLEAR_PENDING_SESSIONS' }
+  | { type: 'GET_SETTINGS' }
+  | { type: 'UPDATE_SETTINGS'; settings: Settings }
 
 export class WebviewPanel {
   private readonly _panel: vscode.WebviewPanel
@@ -65,14 +67,25 @@ export class WebviewPanel {
   private async _handleMessage(msg: WebviewMessage) {
     switch (msg.type) {
       case 'READY': {
-        const [state, sessions] = await Promise.all([
+        const [state, sessions, settings] = await Promise.all([
           this.timerHost.getState(),
           this.timerHost.storage.getPendingSessions(),
+          this.timerHost.storage.getSettings(),
         ])
         this.postState(state)
+        void this._panel.webview.postMessage({ type: 'SETTINGS_STATE', settings })
         void this._panel.webview.postMessage({ type: 'PENDING_SESSIONS', sessions })
         break
       }
+      case 'GET_SETTINGS': {
+        const settings = await this.timerHost.storage.getSettings()
+        void this._panel.webview.postMessage({ type: 'SETTINGS_STATE', settings })
+        break
+      }
+      case 'UPDATE_SETTINGS':
+        await this.timerHost.storage.saveSettings(msg.settings)
+        void this._panel.webview.postMessage({ type: 'SETTINGS_STATE', settings: msg.settings })
+        break
       case 'CLEAR_PENDING_SESSIONS':
         await this.timerHost.storage.savePendingSessions([])
         break

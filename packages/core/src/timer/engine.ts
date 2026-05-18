@@ -20,6 +20,11 @@ export const DEFAULT_TIMER: TimerState = {
   elapsedMs: 0,
 }
 
+function createSessionId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
+  return `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
 export function sessionDurationMs(type: SessionType, settings: Settings): number {
   switch (type) {
     case 'work': return settings.workDuration * 60000
@@ -58,7 +63,7 @@ export function computeStartTimer(
     status: sessionType === 'work' ? 'running' : 'break',
     sessionType,
     taskId: sessionType === 'work' ? taskId : current.taskId,
-    currentSessionId: crypto.randomUUID(),
+    currentSessionId: createSessionId(),
     endTime,
     sessionsCompleted: current.sessionsCompleted,
     sessionStartedAt: now,
