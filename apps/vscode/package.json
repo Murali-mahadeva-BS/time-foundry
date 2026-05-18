@@ -1,0 +1,61 @@
+{
+  "name": "time-foundry",
+  "displayName": "Time Foundry",
+  "description": "Pomodoro timer and task manager for developers",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "time-foundry",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "timeFoundry.open",
+        "title": "Time Foundry: Open"
+      },
+      {
+        "command": "timeFoundry.startTimer",
+        "title": "Time Foundry: Start Timer"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "timeFoundry.open",
+        "key": "ctrl+shift+p",
+        "mac": "cmd+shift+p",
+        "when": "false"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "pnpm run build:ext && pnpm run build:webview",
+    "build:ext": "tsc -p extension/tsconfig.json",
+    "build:webview": "vite build --config webview/vite.config.ts",
+    "dev": "pnpm run dev:webview",
+    "dev:webview": "vite --config webview/vite.config.ts",
+    "watch:ext": "tsc -p extension/tsconfig.json --watch",
+    "watch:webview": "vite build --watch --config webview/vite.config.ts",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@time-foundry/core": "workspace:*",
+    "@time-foundry/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^24.12.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/vscode": "^1.90.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "@vscode/vsce": "^3.6.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.2.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0",
+    "zustand": "^5.0.12"
+  }
+}

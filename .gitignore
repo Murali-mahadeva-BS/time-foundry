@@ -24,4 +24,8 @@ dist-ssr
 *.sw?
 
 # build
-time-foundry*.zip
+releases
+
+# TypeScript build artifacts
+*.tsbuildinfo
+package-lock.json

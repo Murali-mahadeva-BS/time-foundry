@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@ui/*": ["./src/*"],
+      "@ui/stores/timer.store": ["./src/stores/timer.store"],
+      "@ui/stores/settings.store": ["./src/stores/settings.store"],
+      "@time-foundry/core": ["../core/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
