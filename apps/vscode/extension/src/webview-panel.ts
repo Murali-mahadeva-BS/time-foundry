@@ -122,9 +122,11 @@ export class WebviewPanel {
     ).toString()
 
     html = html.replace(/(src|href)="\/([^"]*)"/g, `$1="${webviewUri}/$2"`)
+    // crossorigin attribute triggers CORS checks that vscode-resource:// cannot satisfy
+    html = html.replace(/ crossorigin(="[^"]*")?/g, '')
     html = html.replace(
       /<head>/,
-      `<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${this._panel.webview.cspSource}; style-src 'unsafe-inline' ${this._panel.webview.cspSource}; img-src ${this._panel.webview.cspSource} data:;">`,
+      `<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${this._panel.webview.cspSource}; style-src 'unsafe-inline' ${this._panel.webview.cspSource}; font-src ${this._panel.webview.cspSource}; img-src ${this._panel.webview.cspSource} data:;">`,
     )
 
     return html
