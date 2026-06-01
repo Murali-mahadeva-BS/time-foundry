@@ -1,12 +1,12 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
 import * as fs from 'fs'
-import type { Settings, TimerState } from '@time-foundry/core'
+import type { Settings, TimerState, TimerMode } from '@time-foundry/core'
 import type { TimerHost } from './timer-host'
 
 // Messages the webview sends to the extension host
 type WebviewMessage =
-  | { type: 'START_WORK'; taskId: string; estimatedMinutes?: number }
+  | { type: 'START_WORK'; taskId: string; estimatedMinutes?: number; timerMode?: TimerMode }
   | { type: 'START_BREAK'; breakType: 'shortBreak' | 'longBreak' }
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
@@ -90,7 +90,7 @@ export class WebviewPanel {
         await this.timerHost.storage.savePendingSessions([])
         break
       case 'START_WORK':
-        await this.timerHost.startWork(msg.taskId, msg.estimatedMinutes)
+        await this.timerHost.startWork(msg.taskId, msg.estimatedMinutes, msg.timerMode)
         break
       case 'START_BREAK':
         await this.timerHost.startBreak(msg.breakType)

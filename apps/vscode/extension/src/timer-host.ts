@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { StorageAdapter, TimerState, SessionType } from '@time-foundry/core'
+import type { StorageAdapter, TimerState, SessionType, TimerMode } from '@time-foundry/core'
 import {
   computeStartTimer,
   computePauseTimer,
@@ -37,13 +37,13 @@ export class TimerHost {
 
   // ── Public timer commands ─────────────────────────────────────────────────
 
-  async startWork(taskId: string, estimatedMinutes?: number) {
+  async startWork(taskId: string, estimatedMinutes?: number, timerMode: TimerMode = 'pomodoro') {
     const [current, settings] = await Promise.all([
       this.storage.getTimerState(),
       this.storage.getSettings(),
     ])
     if (current.status !== 'idle') return
-    const { state, endTime } = computeStartTimer(taskId, 'work', current, settings, estimatedMinutes)
+    const { state, endTime } = computeStartTimer(taskId, 'work', current, settings, estimatedMinutes, timerMode)
     await this.storage.saveTimerState(state)
     this._scheduleAlarm(endTime)
     this._emit(state)
@@ -145,25 +145,12 @@ export class TimerHost {
       await this._logSession(current, true)
     }
 
-    const { nextState, nextType, title, body, shouldAutoStart } = computeTimerEnd(current, settings)
+    const { nextState, title, body } = computeTimerEnd(current, settings)
 
-    vscode.window.showInformationMessage(`${title} ${body}`, 'OK')
+    vscode.window.showInformationMessage(`${title} ${body}`)
 
-    if (shouldAutoStart && current.taskId) {
-      const { state, endTime } = computeStartTimer(
-        current.taskId,
-        nextType,
-        nextState,
-        settings,
-        nextType === 'work' ? current.taskEstimatedMinutes : undefined,
-      )
-      await this.storage.saveTimerState(state)
-      this._scheduleAlarm(endTime)
-      this._emit(state)
-    } else {
-      await this.storage.saveTimerState(nextState)
-      this._emit(nextState)
-    }
+    await this.storage.saveTimerState(nextState)
+    this._emit(nextState)
   }
 
   private async _tick() {

@@ -5,10 +5,9 @@ import Image from '@tiptap/extension-image'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import Link from '@tiptap/extension-link'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
+import { Markdown } from 'tiptap-markdown'
 import { createLowlight, common } from 'lowlight'
 import { useEffect, useRef, useState } from 'react'
-import { DOMParser as PMDOMParser } from '@tiptap/pm/model'
-import MarkdownIt from 'markdown-it'
 import {
   Bold, Italic, Strikethrough, List, ListOrdered, Link as LinkIcon,
   Code2, Table as TableIcon, Undo2, Redo2, Quote, Minus, Plus, Trash2,
@@ -17,10 +16,7 @@ import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
 
 const lowlight = createLowlight(common)
-const md = new MarkdownIt({ linkify: true, breaks: true, html: false })
 
-// Extend CodeBlockLowlight to expose the language as data-language on <pre>
-// so the CSS ::before badge can read it via content: attr(data-language)
 const CodeBlock = CodeBlockLowlight.extend({
   addAttributes() {
     return {
@@ -39,7 +35,7 @@ const CodeBlock = CodeBlockLowlight.extend({
 
 interface RichTextEditorProps {
   content: string
-  onChange: (html: string) => void
+  onChange: (markdown: string) => void
   placeholder?: string
   className?: string
   readOnly?: boolean
@@ -59,8 +55,6 @@ export function RichTextEditor({
   const [hoverRow, setHoverRow] = useState<{ top: number; left: number; pos: number } | null>(null)
   const [hoverCol, setHoverCol] = useState<{ left: number; top: number; pos: number } | null>(null)
 
-  // Keep onChange ref stable so the timer callback always calls the latest version
-  // without needing to be listed as an effect dependency (avoids stale closures)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
@@ -80,15 +74,22 @@ export function RichTextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      Markdown.configure({
+        html: false,
+        tightLists: true,
+        bulletListMarker: '-',
+        linkify: true,
+        breaks: true,
+        transformPastedText: true,
+        transformCopiedText: false,
+      }),
     ],
-    // content is ONLY used on mount — never synced back via useEffect.
-    // The parent must use key={taskId} to remount when switching tasks.
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
-        onChangeRef.current(editor.getHTML())
+        onChangeRef.current(editor.storage.markdown.getMarkdown())
       }, 600)
     },
     editorProps: {
@@ -115,29 +116,17 @@ export function RichTextEditor({
             return true
           }
         }
-        const plainText = event.clipboardData?.getData('text/plain') ?? ''
-        const hasMarkdown = /(^|\n)\s*(#{1,6}\s|[-*]\s|\d+\.\s|```|\|.+\|)|\*\*.+\*\*|\[.+\]\(.+\)|\[[^\]]+\]\[[^\]]*\]|\[[^\]]+\]:\s*\S+/m.test(plainText)
-        if (plainText && hasMarkdown) {
-          event.preventDefault()
-          const html = md.render(plainText)
-          const container = document.createElement('div')
-          container.innerHTML = html
-          const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(container)
-          view.dispatch(view.state.tr.replaceSelection(slice))
-          return true
-        }
         return false
       },
     },
   })
 
-  // Flush pending save on unmount so no content is lost when navigating away
   useEffect(() => {
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current)
         saveTimer.current = null
-        if (editor) onChangeRef.current(editor.getHTML())
+        if (editor) onChangeRef.current(editor.storage.markdown.getMarkdown())
       }
     }
   }, [editor])
@@ -146,11 +135,10 @@ export function RichTextEditor({
     <div
       ref={rootRef}
       onBlur={() => {
-        // Also flush when focus leaves the editor area
         if (saveTimer.current) {
           clearTimeout(saveTimer.current)
           saveTimer.current = null
-          if (editor) onChangeRef.current(editor.getHTML())
+          if (editor) onChangeRef.current(editor.storage.markdown.getMarkdown())
         }
       }}
       onMouseMove={(e) => {
@@ -204,7 +192,7 @@ export function RichTextEditor({
         '[&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none',
         '[&_.tiptap_p.is-editor-empty:first-child::before]:h-0',
         '[&_.tiptap_img]:max-w-full [&_.tiptap_img]:rounded-md [&_.tiptap_img]:my-2',
-        '[&_.tiptap_table]:w-full [&_.tiptap_table]:table-fixed [&_.tiptap_table]:border-collapse [&_.tiptap_th]:border [&_.tiptap_td]:border [&_.tiptap_th]:p-2 [&_.tiptap_td]:p-2 [&_.tiptap_th]:align-top [&_.tiptap_td]:align-top [&_.tiptap_th]:break-words [&_.tiptap_td]:break-words',
+        '[&_.tiptap_table]:w-full [&_.tiptap_table]:table-fixed [&_.tiptap_table]:border-collapse [&_.tiptap_th]:border [&_.tiptap_td]:border [&_.tiptap_th]:p-2 [&_.tiptap_td]:p-2 [&_.tiptap_th]:align-top [&_.tiptap_td]:align-top [&_.tiptap_th]:wrap-break-word [&_.tiptap_td]:wrap-break-word',
         className,
       )}
     >

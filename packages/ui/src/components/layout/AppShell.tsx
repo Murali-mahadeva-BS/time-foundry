@@ -1,6 +1,6 @@
 import { TooltipProvider } from '../ui/tooltip'
 import { Sidebar } from './Sidebar'
-import { PomodoroBar } from './PomodoroBar'
+import { TimerBar } from './PomodoroBar'
 import { ProjectPage } from '../../pages/ProjectPage'
 import { TaskPage } from '../../pages/TaskPage'
 import { ReportsPage } from '../../pages/ReportsPage'
@@ -47,7 +47,7 @@ export function AppShell() {
           <main className="flex flex-1 flex-col overflow-hidden animate-fade-in" key={routeKey}>
             {renderMain()}
           </main>
-          <PomodoroBar />
+          <TimerBar />
         </div>
       </div>
     </TooltipProvider>

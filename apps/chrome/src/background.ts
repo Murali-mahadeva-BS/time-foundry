@@ -1,4 +1,4 @@
-import type { TimerState, SessionType, Settings } from '@time-foundry/core'
+import type { TimerState, SessionType, Settings, TimerMode } from '@time-foundry/core'
 
 const TIMER_KEY = 'timerState'
 const SETTINGS_KEY = 'settings'
@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: Settings = {
   longBreakAfter: 4,
   idleThresholdMinutes: 5,
   skipBreaks: false,
-  autoStartNextSession: true,
+  defaultTimerMode: 'pomodoro',
   theme: 'system',
   colorTheme: 'sky',
   customPrimary: '#30BCED',
@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS: Settings = {
 const DEFAULT_TIMER: TimerState = {
   status: 'idle',
   sessionType: 'work',
+  timerMode: 'pomodoro',
   sessionsCompleted: 0,
   elapsedMs: 0,
 }
@@ -39,6 +40,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           message.taskId as string,
           message.sessionType as SessionType,
           message.estimatedMinutes as number | undefined,
+          message.timerMode as TimerMode | undefined,
         )
         sendResponse({ ok: true })
         break
@@ -94,15 +96,20 @@ async function handleStartTimer(
   taskId: string,
   sessionType: SessionType = 'work',
   estimatedMinutes?: number,
+  timerMode: TimerMode = 'pomodoro',
 ) {
   const settings = await getSettings()
-  const durationMs = sessionDurationMs(sessionType, settings)
+  const mode = sessionType === 'work' ? timerMode : 'pomodoro'
+  const durationMs = (mode === 'free' && sessionType === 'work' && estimatedMinutes)
+    ? estimatedMinutes * 60000
+    : sessionDurationMs(sessionType, settings)
   const now = Date.now()
   const state = await getTimerState()
 
   const next: TimerState = {
     status: sessionType === 'work' ? 'running' : 'break',
     sessionType,
+    timerMode: mode,
     taskId: sessionType === 'work' ? taskId : state.taskId,
     currentSessionId: crypto.randomUUID(),
     endTime: now + durationMs,
@@ -188,6 +195,7 @@ async function handleSkipSession() {
   await saveTimerState({
     status: 'idle',
     sessionType: nextType,
+    timerMode: state.timerMode ?? 'pomodoro',
     taskId: state.taskId,
     sessionsCompleted: newSessions,
     elapsedMs: 0,
@@ -209,26 +217,43 @@ async function handleExtendTimer(minutes: number) {
 async function handleTimerEnd() {
   const state = await getTimerState()
   const settings = await getSettings()
+  const mode = state.timerMode ?? 'pomodoro'
 
   if (state.sessionType === 'work' && state.taskId && state.currentSessionId) {
     await logSession(state, true)
   }
 
+  if (mode === 'free') {
+    chrome.notifications.create(`timer-${Date.now()}`, {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+      title: 'Session complete!',
+      message: 'Your free timer session has ended.',
+    })
+    await saveTimerState({
+      status: 'idle',
+      sessionType: 'work',
+      timerMode: 'free',
+      taskId: state.taskId,
+      sessionsCompleted: state.sessionsCompleted + 1,
+      elapsedMs: 0,
+      taskEstimatedMinutes: state.taskEstimatedMinutes,
+      estimateExceededNotified: false,
+    })
+    return
+  }
+
+  // Pomodoro mode
   const newSessions =
     state.sessionType === 'work' ? state.sessionsCompleted + 1 : state.sessionsCompleted
-
-  // If skipBreaks is on and a work session just ended, skip the break
   const skipBreak = settings.skipBreaks && state.sessionType === 'work'
-
   const nextType: SessionType = skipBreak
     ? 'work'
     : state.sessionType === 'work'
-      ? newSessions % settings.longBreakAfter === 0
-        ? 'longBreak'
-        : 'shortBreak'
+      ? newSessions % settings.longBreakAfter === 0 ? 'longBreak' : 'shortBreak'
       : 'work'
 
-  const title = state.sessionType === 'work' ? 'Work session complete!' : 'Break over!'
+  const title = state.sessionType === 'work' ? 'Pomodoro complete!' : 'Break over!'
   const body = skipBreak
     ? 'Break skipped. Ready for the next session!'
     : state.sessionType === 'work'
@@ -242,23 +267,16 @@ async function handleTimerEnd() {
     message: body,
   })
 
-  if (settings.autoStartNextSession && state.taskId) {
-    await handleStartTimer(
-      state.taskId,
-      nextType,
-      nextType === 'work' ? state.taskEstimatedMinutes : undefined,
-    )
-  } else {
-    await saveTimerState({
-      status: 'idle',
-      sessionType: nextType,
-      taskId: state.taskId,
-      sessionsCompleted: newSessions,
-      elapsedMs: 0,
-      taskEstimatedMinutes: state.taskEstimatedMinutes,
-      estimateExceededNotified: false,
-    })
-  }
+  await saveTimerState({
+    status: 'idle',
+    sessionType: nextType,
+    timerMode: 'pomodoro',
+    taskId: state.taskId,
+    sessionsCompleted: newSessions,
+    elapsedMs: 0,
+    taskEstimatedMinutes: state.taskEstimatedMinutes,
+    estimateExceededNotified: false,
+  })
 }
 
 async function handleIdleStart() {
@@ -326,6 +344,7 @@ async function logSession(state: TimerState, completed: boolean) {
     durationMinutes,
     completed,
     sessionType: state.sessionType,
+    timerMode: state.timerMode ?? 'pomodoro',
   }
 
   const result = await chrome.storage.local.get(PENDING_SESSIONS_KEY)

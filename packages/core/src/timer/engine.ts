@@ -1,4 +1,4 @@
-import type { TimerState, SessionType, Settings, PomodoroSession } from '../types/index'
+import type { TimerState, SessionType, Settings, PomodoroSession, TimerMode } from '../types/index'
 
 export const DEFAULT_SETTINGS: Settings = {
   workDuration: 25,
@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: Settings = {
   longBreakAfter: 4,
   idleThresholdMinutes: 5,
   skipBreaks: false,
-  autoStartNextSession: true,
+  defaultTimerMode: 'pomodoro',
   theme: 'system',
   colorTheme: 'sky',
   customPrimary: '#30BCED',
@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const DEFAULT_TIMER: TimerState = {
   status: 'idle',
   sessionType: 'work',
+  timerMode: 'pomodoro',
   sessionsCompleted: 0,
   elapsedMs: 0,
 }
@@ -54,14 +55,24 @@ export function computeStartTimer(
   current: TimerState,
   settings: Settings,
   estimatedMinutes?: number,
+  timerMode: TimerMode = 'pomodoro',
 ): StartTimerResult {
   const now = Date.now()
-  const durationMs = sessionDurationMs(sessionType, settings)
+
+  let durationMs: number
+  if (timerMode === 'free' && sessionType === 'work') {
+    // Free mode: use the task's estimate as the session duration
+    durationMs = (estimatedMinutes ?? 0) * 60000
+  } else {
+    durationMs = sessionDurationMs(sessionType, settings)
+  }
+
   const endTime = now + durationMs
 
   const state: TimerState = {
     status: sessionType === 'work' ? 'running' : 'break',
     sessionType,
+    timerMode: sessionType === 'work' ? timerMode : (current.timerMode ?? 'pomodoro'),
     taskId: sessionType === 'work' ? taskId : current.taskId,
     currentSessionId: createSessionId(),
     endTime,
@@ -139,6 +150,29 @@ export function computeTimerEnd(
   current: TimerState,
   settings: Settings,
 ): { nextState: TimerState; nextType: SessionType; title: string; body: string; shouldAutoStart: boolean } {
+  const mode = current.timerMode ?? 'pomodoro'
+
+  if (mode === 'free') {
+    const idleState: TimerState = {
+      status: 'idle',
+      sessionType: 'work',
+      timerMode: 'free',
+      taskId: current.taskId,
+      sessionsCompleted: current.sessionsCompleted + 1,
+      elapsedMs: 0,
+      taskEstimatedMinutes: current.taskEstimatedMinutes,
+      estimateExceededNotified: false,
+    }
+    return {
+      nextState: idleState,
+      nextType: 'work',
+      title: 'Session complete!',
+      body: 'Your free timer session has ended.',
+      shouldAutoStart: false,
+    }
+  }
+
+  // Pomodoro mode
   const newSessions =
     current.sessionType === 'work' ? current.sessionsCompleted + 1 : current.sessionsCompleted
 
@@ -148,7 +182,7 @@ export function computeTimerEnd(
     ? 'work'
     : nextSessionType(current.sessionType, current.sessionsCompleted, settings)
 
-  const title = current.sessionType === 'work' ? 'Work session complete!' : 'Break over!'
+  const title = current.sessionType === 'work' ? 'Pomodoro complete!' : 'Break over!'
   const body = skipBreak
     ? 'Break skipped. Ready for the next session!'
     : current.sessionType === 'work'
@@ -158,6 +192,7 @@ export function computeTimerEnd(
   const idleState: TimerState = {
     status: 'idle',
     sessionType: nextType,
+    timerMode: 'pomodoro',
     taskId: current.taskId,
     sessionsCompleted: newSessions,
     elapsedMs: 0,
@@ -170,7 +205,7 @@ export function computeTimerEnd(
     nextType,
     title,
     body,
-    shouldAutoStart: settings.autoStartNextSession && !!current.taskId,
+    shouldAutoStart: false,
   }
 }
 
@@ -185,6 +220,7 @@ export function computeSkipSession(
   return {
     status: 'idle',
     sessionType: nextType,
+    timerMode: current.timerMode ?? 'pomodoro',
     taskId: current.taskId,
     sessionsCompleted: newSessions,
     elapsedMs: 0,
@@ -216,6 +252,7 @@ export function buildPendingSession(state: TimerState, completed: boolean): Pomo
     durationMinutes: Math.round(elapsedMs / 60000),
     completed,
     sessionType: state.sessionType,
+    timerMode: state.timerMode ?? 'pomodoro',
   }
 }
 
@@ -224,6 +261,7 @@ export function checkEstimateExceeded(
   taskSessionMinutes: Record<string, number>,
 ): boolean {
   if (state.status !== 'running' || state.sessionType !== 'work' || !state.taskId) return false
+  if (state.timerMode === 'free') return false // free mode handles this via timer end, not mid-session
   if (!state.taskEstimatedMinutes || state.taskEstimatedMinutes <= 0 || state.estimateExceededNotified) return false
 
   const now = Date.now()

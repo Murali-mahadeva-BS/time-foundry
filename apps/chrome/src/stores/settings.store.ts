@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS: Settings = {
   longBreakAfter: 4,
   idleThresholdMinutes: 5,
   skipBreaks: false,
-  autoStartNextSession: true,
+  defaultTimerMode: 'pomodoro',
   theme: 'system',
   colorTheme: 'sky',
   customPrimary: '#30BCED',

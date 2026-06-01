@@ -21,6 +21,7 @@ interface TaskStat {
   estimatedMinutes: number
   actualMinutes: number
   sessions: number
+  timerMode: 'pomodoro' | 'free' | 'mixed'
 }
 
 interface HourStat {
@@ -43,7 +44,11 @@ function useSessions(range: Range) {
       .where('startedAt')
       .between(bounds.start, bounds.end)
       .toArray()
-      .then(setSessions)
+      .then((rows) => {
+        const normalized = (rows as (Omit<PomodoroSession, 'timerMode'> & { timerMode?: PomodoroSession['timerMode'] })[])
+          .map((s) => ({ ...s, timerMode: s.timerMode ?? 'pomodoro' }) as PomodoroSession)
+        setSessions(normalized)
+      })
   }, [range])
   return sessions
 }
@@ -71,13 +76,16 @@ export function ReportsPage() {
   const tasks = useAppStore((s) => s.tasks)
 
   const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0)
-  const completedSessions = sessions.filter((s) => s.completed).length
+  const completedWork = sessions.filter((s) => s.completed && s.sessionType === 'work')
+  const pomodoroSessions = completedWork.filter((s) => (s.timerMode ?? 'pomodoro') === 'pomodoro')
+  const freeSessions = completedWork.filter((s) => s.timerMode === 'free')
 
   const allSessions = sessions.slice().sort((a, b) => a.startedAt - b.startedAt)
   let maxStreak = 0, curStreak = 0
   for (const s of allSessions) {
-    if (s.completed && s.sessionType === 'work') { curStreak++; maxStreak = Math.max(maxStreak, curStreak) }
-    else if (s.sessionType === 'work') curStreak = 0
+    if (s.completed && s.sessionType === 'work' && (s.timerMode ?? 'pomodoro') === 'pomodoro') {
+      curStreak++; maxStreak = Math.max(maxStreak, curStreak)
+    } else if (s.sessionType === 'work') curStreak = 0
   }
 
   // Per-task stats
@@ -90,12 +98,15 @@ export function ReportsPage() {
   for (const [taskId, taskSessions] of Object.entries(grouped)) {
     const task = tasks.find((t) => t.id === taskId)
     if (!task) continue
+    const modes = new Set(taskSessions.map((s) => s.timerMode ?? 'pomodoro'))
+    const timerMode = modes.size > 1 ? 'mixed' : (modes.has('free') ? 'free' : 'pomodoro')
     taskStats.push({
       taskId,
       title: task.title,
       estimatedMinutes: task.estimatedMinutes,
       actualMinutes: taskSessions.reduce((sum, s) => sum + s.durationMinutes, 0),
       sessions: taskSessions.length,
+      timerMode,
     })
   }
   taskStats.sort((a, b) => b.actualMinutes - a.actualMinutes)
@@ -158,19 +169,22 @@ export function ReportsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4">
-                <p className="text-2xl font-bold text-emerald-500">{completedSessions}</p>
+                <p className="text-2xl font-bold text-emerald-500">{pomodoroSessions.length + freeSessions.length}</p>
+                <p className="text-xs text-muted-foreground">
+                  {pomodoroSessions.length} pomodoro · {freeSessions.length} free
+                </p>
               </CardContent>
             </Card>
 
             <Card className="border-orange-500/20 bg-orange-500/5">
               <CardHeader className="pb-1 pt-4">
                 <CardTitle className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <Flame className="h-3.5 w-3.5 text-orange-500" /> Best streak
+                  <Flame className="h-3.5 w-3.5 text-orange-500" /> Best Pomodoro streak
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4">
                 <p className="text-2xl font-bold text-orange-500">{maxStreak}</p>
-                <p className="text-xs text-muted-foreground">consecutive pomodoros</p>
+                <p className="text-xs text-muted-foreground">consecutive sessions</p>
               </CardContent>
             </Card>
           </div>
@@ -300,6 +314,7 @@ export function ReportsPage() {
                   <thead>
                     <tr className="border-b text-xs text-muted-foreground">
                       <th className="px-4 py-2 text-left font-medium">Task</th>
+                      <th className="w-20 px-4 py-2 text-left font-medium">Mode</th>
                       <th className="w-16 px-4 py-2 text-right font-medium">Sessions</th>
                       <th className="w-20 px-4 py-2 text-right font-medium">Estimate</th>
                       <th className="w-20 px-4 py-2 text-right font-medium">Actual</th>
@@ -313,6 +328,18 @@ export function ReportsPage() {
                         <tr key={t.taskId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="max-w-0 px-4 py-2">
                             <span className="block truncate font-medium" title={t.title}>{t.title}</span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={cn(
+                              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+                              t.timerMode === 'free'
+                                ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+                                : t.timerMode === 'mixed'
+                                  ? 'bg-muted text-muted-foreground'
+                                  : 'bg-primary/10 text-primary',
+                            )}>
+                              {t.timerMode === 'free' ? '⏱ Free' : t.timerMode === 'mixed' ? '⚡/⏱' : '⚡ Pomo'}
+                            </span>
                           </td>
                           <td className="px-4 py-2 text-right text-muted-foreground">{t.sessions}</td>
                           <td className="px-4 py-2 text-right text-muted-foreground">
@@ -341,7 +368,7 @@ export function ReportsPage() {
               <BarChart3 className="mb-3 h-12 w-12 text-muted-foreground/20" />
               <p className="font-medium">No sessions recorded</p>
               <p className="text-sm text-muted-foreground">
-                Start a Pomodoro and complete or stop it to see stats here.
+                Start a timer session and complete or stop it to see stats here.
               </p>
             </div>
           )}

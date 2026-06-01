@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Time Foundry",
+    "slug": "time-foundry",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "time-foundry",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.timeFoundry.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Settings, Moon, Sun, Monitor, Clock, Coffee, Zap, Timer, SkipForward, Palette, Play } from 'lucide-react'
+import { Settings, Moon, Sun, Monitor, Clock, Coffee, Zap, Timer, SkipForward, Palette, AlarmClock, Hourglass } from 'lucide-react'
 import { useSettingsStore } from '@ui/stores/settings.store'
-import type { Theme, ColorTheme } from '@time-foundry/core'
+import type { Theme, ColorTheme, TimerMode } from '@time-foundry/core'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Switch } from '../ui/switch'
@@ -251,9 +251,39 @@ export function SettingsPanel() {
 
           <Separator />
 
-          {/* Pomodoro */}
+          {/* Timer */}
           <section className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pomodoro Timer</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timer</h2>
+
+            <SettingRow label="Default timer mode" description="Applied when creating new tasks — can be overridden per task">
+              <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+                {([
+                  { value: 'pomodoro' as TimerMode, label: 'Pomodoro', icon: <AlarmClock className="h-3.5 w-3.5" /> },
+                  { value: 'free' as TimerMode, label: 'Free', icon: <Hourglass className="h-3.5 w-3.5" /> },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => update({ defaultTimerMode: opt.value })}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
+                      settings.defaultTimerMode === opt.value
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {opt.icon}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </SettingRow>
+          </section>
+
+          <Separator />
+
+          {/* Pomodoro config */}
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pomodoro Settings</h2>
 
             <SettingRow label="Work session" description="Duration of each focus session">
               <div className="flex items-center gap-2">
@@ -293,13 +323,6 @@ export function SettingsPanel() {
               <div className="flex items-center gap-2">
                 <SkipForward className={cn('h-4 w-4', settings.skipBreaks ? 'text-primary' : 'text-muted-foreground')} />
                 <Switch checked={settings.skipBreaks} onCheckedChange={(v) => update({ skipBreaks: v })} />
-              </div>
-            </SettingRow>
-
-            <SettingRow label="Auto-start next session" description="Continue automatically until you pause or stop">
-              <div className="flex items-center gap-2">
-                <Play className={cn('h-4 w-4', settings.autoStartNextSession ? 'text-primary' : 'text-muted-foreground')} />
-                <Switch checked={settings.autoStartNextSession} onCheckedChange={(v) => update({ autoStartNextSession: v })} />
               </div>
             </SettingRow>
           </section>

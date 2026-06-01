@@ -2,13 +2,13 @@
 // Chrome maps @ui/stores/timer.store → apps/chrome/src/stores/timer.store.ts
 // VS Code maps @ui/stores/timer.store → apps/vscode/webview/src/timer-store.ts
 import { create } from 'zustand'
-import type { TimerState, SessionType } from '@time-foundry/core'
+import type { TimerState, SessionType, TimerMode } from '@time-foundry/core'
 import { DEFAULT_TIMER } from '@time-foundry/core'
 
 export interface TimerStoreShape {
   state: TimerState
   remainingSeconds: number
-  startWork: (taskId: string, estimatedMinutes?: number) => void | Promise<void>
+  startWork: (taskId: string, estimatedMinutes?: number, timerMode?: TimerMode) => void | Promise<void>
   startBreak: (type: Extract<SessionType, 'shortBreak' | 'longBreak'>) => void | Promise<void>
   pause: () => void | Promise<void>
   resume: () => void | Promise<void>

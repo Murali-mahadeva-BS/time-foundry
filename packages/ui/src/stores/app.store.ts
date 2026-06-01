@@ -41,11 +41,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   tasks: [],
 
   loadAll: async () => {
-    const [projects, lists, tasks] = await Promise.all([
+    const [projects, lists, rawTasks] = await Promise.all([
       db.projects.orderBy('createdAt').toArray(),
       db.lists.orderBy('order').toArray(),
-      db.tasks.orderBy('createdAt').toArray(),
+      db.tasks.orderBy('createdAt').toArray() as Promise<(Omit<Task, 'timerMode'> & { timerMode?: Task['timerMode'] })[]>,
     ])
+    // Normalize tasks from DB — older rows may be missing timerMode
+    const tasks: Task[] = rawTasks.map((t) => ({ ...t, timerMode: t.timerMode ?? 'pomodoro' }))
     set({ projects, lists, tasks })
   },
 

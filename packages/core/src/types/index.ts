@@ -1,6 +1,7 @@
 export type Priority = 'urgent' | 'high' | 'medium' | 'low'
 export type SessionType = 'work' | 'shortBreak' | 'longBreak'
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'break'
+export type TimerMode = 'pomodoro' | 'free'
 
 export interface Status {
   id: string
@@ -36,6 +37,7 @@ export interface Task {
   notes?: string
   content?: string
   estimatedMinutes: number
+  timerMode: TimerMode
   priority: Priority
   statusId: string
   order: number
@@ -52,11 +54,13 @@ export interface PomodoroSession {
   durationMinutes: number
   completed: boolean
   sessionType: SessionType
+  timerMode: TimerMode
 }
 
 export interface TimerState {
   status: TimerStatus
   sessionType: SessionType
+  timerMode: TimerMode
   taskId?: string
   currentSessionId?: string
   endTime?: number
@@ -80,7 +84,7 @@ export interface Settings {
   longBreakAfter: number
   idleThresholdMinutes: number
   skipBreaks: boolean
-  autoStartNextSession: boolean
+  defaultTimerMode: TimerMode
   theme: Theme
   colorTheme: ColorTheme
   customPrimary: string

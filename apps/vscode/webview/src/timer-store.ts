@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { TimerState, SessionType } from '@time-foundry/core'
+import type { TimerState, SessionType, TimerMode } from '@time-foundry/core'
 import {
   DEFAULT_TIMER,
   computeExtendTimer,
@@ -17,7 +17,7 @@ interface TimerStore {
   state: TimerState
   remainingSeconds: number
   init: () => () => void
-  startWork: (taskId: string, estimatedMinutes?: number) => void
+  startWork: (taskId: string, estimatedMinutes?: number, timerMode?: TimerMode) => void
   startBreak: (type: Extract<SessionType, 'shortBreak' | 'longBreak'>) => void
   pause: () => void
   resume: () => void
@@ -65,30 +65,10 @@ export const useTimerStore = create<TimerStore>((set, get) => {
     if (!isActive(current)) return
 
     const settings = useSettingsStore.getState().settings
-    const { nextState, nextType, shouldAutoStart } = computeTimerEnd(current, settings)
+    const { nextState } = computeTimerEnd(current, settings)
 
-    if (shouldAutoStart && current.taskId) {
-      const { state } = computeStartTimer(
-        current.taskId,
-        nextType,
-        nextState,
-        settings,
-        nextType === 'work' ? current.taskEstimatedMinutes : undefined,
-      )
-      publish(state, true)
-      if (nextType === 'work') {
-        sendToHost({
-          type: 'START_WORK',
-          taskId: current.taskId,
-          estimatedMinutes: current.taskEstimatedMinutes,
-        })
-      } else {
-        sendToHost({ type: 'START_BREAK', breakType: nextType })
-      }
-    } else {
-      localSessionId = undefined
-      publish(nextState)
-    }
+    localSessionId = undefined
+    publish(nextState)
   }
 
   const scheduleLocalTimers = () => {
@@ -128,12 +108,12 @@ export const useTimerStore = create<TimerStore>((set, get) => {
       }
     },
 
-    startWork: (taskId, estimatedMinutes) => {
+    startWork: (taskId, estimatedMinutes, timerMode = 'pomodoro') => {
       const settings = useSettingsStore.getState().settings
       const baseState = get().state.status === 'idle' ? get().state : { ...DEFAULT_TIMER }
-      const { state } = computeStartTimer(taskId, 'work', baseState, settings, estimatedMinutes)
+      const { state } = computeStartTimer(taskId, 'work', baseState, settings, estimatedMinutes, timerMode)
       publish(state, true)
-      sendToHost({ type: 'START_WORK', taskId, estimatedMinutes })
+      sendToHost({ type: 'START_WORK', taskId, estimatedMinutes, timerMode })
     },
 
     startBreak: (breakType) => {

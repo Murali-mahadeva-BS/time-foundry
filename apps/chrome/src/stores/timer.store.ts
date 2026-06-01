@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import type { TimerState, SessionType } from '@time-foundry/core'
+import type { TimerState, SessionType, TimerMode } from '@time-foundry/core'
 
 const DEFAULT_STATE: TimerState = {
   status: 'idle',
   sessionType: 'work',
+  timerMode: 'pomodoro',
   sessionsCompleted: 0,
   elapsedMs: 0,
 }
@@ -13,7 +14,7 @@ interface TimerStore {
   remainingSeconds: number
   load: () => Promise<void>
   tick: () => void
-  startWork: (taskId: string, estimatedMinutes?: number) => Promise<void>
+  startWork: (taskId: string, estimatedMinutes?: number, timerMode?: TimerMode) => Promise<void>
   startBreak: (type: Extract<SessionType, 'shortBreak' | 'longBreak'>) => Promise<void>
   pause: () => Promise<void>
   resume: () => Promise<void>
@@ -49,10 +50,10 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     }
   },
 
-  startWork: async (taskId, estimatedMinutes) => {
+  startWork: async (taskId, estimatedMinutes, timerMode = 'pomodoro') => {
     const { state } = get()
     if (state.status !== 'idle') return
-    await sendToBackground('START_TIMER', { taskId, sessionType: 'work', estimatedMinutes })
+    await sendToBackground('START_TIMER', { taskId, sessionType: 'work', estimatedMinutes, timerMode })
     setTimeout(() => get().load(), 150)
   },
 

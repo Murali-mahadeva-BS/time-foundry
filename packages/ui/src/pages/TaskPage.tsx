@@ -164,16 +164,29 @@ export function TaskPage({ taskId }: TaskPageProps) {
 
           {/* Action row */}
           <div className="mb-6 flex items-center gap-3">
-            <Button
-              size="sm"
-              className={cn('gap-1.5', isActiveTask && 'bg-primary/20 text-primary border border-primary/30')}
-              onClick={() => !timerRunning && startWork(taskId, task.estimatedMinutes)}
-              disabled={timerRunning && !isActiveTask}
-              variant={isActiveTask ? 'outline' : 'default'}
-            >
-              <Play className="h-3.5 w-3.5" />
-              {isActiveTask ? 'Timer running' : timerRunning ? 'Timer busy' : 'Start Pomodoro'}
-            </Button>
+            {task.timerMode === 'free' && !task.estimatedMinutes && !isActiveTask && !timerRunning ? (
+              <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                <Play className="h-3.5 w-3.5 shrink-0" />
+                Set an estimate on this task to start the free timer
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                className={cn('gap-1.5', isActiveTask && 'bg-primary/20 text-primary border border-primary/30')}
+                onClick={() => !timerRunning && startWork(taskId, task.estimatedMinutes, task.timerMode)}
+                disabled={timerRunning && !isActiveTask}
+                variant={isActiveTask ? 'outline' : 'default'}
+              >
+                <Play className="h-3.5 w-3.5" />
+                {isActiveTask
+                  ? 'Timer running'
+                  : timerRunning
+                    ? 'Timer busy'
+                    : task.timerMode === 'free'
+                      ? 'Start free timer'
+                      : 'Start Pomodoro'}
+              </Button>
+            )}
           </div>
 
           {/* Metadata grid */}

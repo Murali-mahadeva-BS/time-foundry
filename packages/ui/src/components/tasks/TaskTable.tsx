@@ -73,6 +73,7 @@ export function TaskTable({
       listId,
       title: trimmed,
       estimatedMinutes: 0,
+      timerMode: 'pomodoro',
       priority: 'medium',
       statusId: project.statuses[0]?.id ?? '',
     })
