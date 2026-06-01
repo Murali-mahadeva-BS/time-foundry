@@ -30,5 +30,8 @@ releases
 *.tsbuildinfo
 package-lock.json
 
+# VS Code packaged extension
+apps/vscode/*.vsix
+
 # Turborepo cache
 .turbo
