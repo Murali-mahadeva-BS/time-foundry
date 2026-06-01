@@ -2,8 +2,9 @@
   "name": "time-foundry",
   "displayName": "Time Foundry",
   "description": "Pomodoro timer and task manager for developers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "CodeSethu",
+  "icon": "icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
