@@ -3,11 +3,26 @@
   "displayName": "Time Foundry",
   "description": "Pomodoro timer and task manager for developers",
   "version": "0.1.0",
-  "private": true,
   "publisher": "time-foundry",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Other"],
-  "activationEvents": [],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Murali-mahadeva-BS/time-foundry.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Murali-mahadeva-BS/time-foundry/issues"
+  },
+  "homepage": "https://github.com/Murali-mahadeva-BS/time-foundry",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:timeFoundry.open",
+    "onCommand:timeFoundry.startTimer"
+  ],
   "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
