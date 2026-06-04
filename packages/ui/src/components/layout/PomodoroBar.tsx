@@ -58,6 +58,19 @@ export function TimerBar() {
     }
   }, [state.status, state.taskId])
 
+  useEffect(() => {
+    if (!state.taskId) return
+    const refreshSessions = () => {
+      db.sessions
+        .where('taskId')
+        .equals(state.taskId!)
+        .toArray()
+        .then((sessions) => setTotalMinutes(sessions.reduce((sum, s) => sum + s.durationMinutes, 0)))
+    }
+    window.addEventListener('time-foundry:sessions-updated', refreshSessions)
+    return () => window.removeEventListener('time-foundry:sessions-updated', refreshSessions)
+  }, [state.taskId])
+
   const task = tasks.find((t) => t.id === state.taskId)
 
   // ── Idle+taskId — show the post-session summary panel ────────────────────

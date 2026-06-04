@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
+import { ScrollArea } from './scroll-area'
 import { cn } from '../../lib/utils'
 
 export type IconName = string
@@ -55,9 +56,7 @@ export function IconPicker({ value, onChange, children }: IconPickerProps) {
       .map((group) => ({
         ...group,
         emojis: group.emojis.filter(
-          (emoji) =>
-            emoji.includes(normalizedQuery) ||
-            group.label.toLowerCase().includes(normalizedQuery),
+          (emoji) => emojiMatchesQuery(emoji, group.label, normalizedQuery),
         ),
       }))
       .filter((group) => group.emojis.length > 0)
@@ -75,7 +74,7 @@ export function IconPicker({ value, onChange, children }: IconPickerProps) {
             className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="max-h-80 overflow-auto p-2">
+        <ScrollArea className="h-80 p-2">
           <EmojiGrid
             groups={filtered}
             value={value}
@@ -85,7 +84,12 @@ export function IconPicker({ value, onChange, children }: IconPickerProps) {
               setQuery('')
             }}
           />
-        </div>
+          {filtered.length === 0 && (
+            <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+              No emoji found
+            </div>
+          )}
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   )
@@ -100,6 +104,123 @@ const EMOJI_GROUPS: { label: string; emojis: string[] }[] = [
   { label: 'Objects', emojis: ['🎨', '✏️', '🖌️', '🧵', '🧲', '🕹️', '🎧', '📷', '📱', '🕰️', '📡', '🔋', '💿', '🔔', '🕯️', '🧰'] },
   { label: 'Nature', emojis: ['🌱', '🌿', '🍃', '🌲', '🌸', '🌺', '🌻', '🌙', '☀️', '🌊', '🌍', '🌈', '🔥', '🌩️', '❄️', '🍀'] },
 ]
+
+const EMOJI_KEYWORDS: Record<string, string[]> = {
+  '📕': ['book', 'read', 'study'],
+  '🎒': ['bag', 'school', 'backpack'],
+  '📚': ['books', 'library', 'study', 'docs'],
+  '🚀': ['rocket', 'launch', 'ship', 'startup'],
+  '⚡': ['zap', 'energy', 'fast', 'focus', 'power'],
+  '✅': ['check', 'done', 'complete', 'success', 'task'],
+  '🧠': ['brain', 'think', 'idea', 'ai', 'mind'],
+  '🛠️': ['tools', 'build', 'fix', 'maintenance'],
+  '📌': ['pin', 'important', 'bookmark'],
+  '📝': ['memo', 'note', 'write', 'task'],
+  '💼': ['briefcase', 'work', 'business'],
+  '📦': ['package', 'box', 'release', 'ship'],
+  '😀': ['smile', 'happy', 'face', 'grin'],
+  '😃': ['smile', 'happy', 'face', 'grin'],
+  '😄': ['smile', 'happy', 'face', 'laugh'],
+  '😁': ['smile', 'happy', 'face', 'grin'],
+  '😆': ['laugh', 'happy', 'face'],
+  '😅': ['sweat', 'laugh', 'happy', 'face'],
+  '🤣': ['laugh', 'lol', 'funny'],
+  '😂': ['laugh', 'tears', 'funny'],
+  '🙂': ['smile', 'happy', 'face'],
+  '🙃': ['upside down', 'smile', 'face'],
+  '😉': ['wink', 'smile', 'face'],
+  '😊': ['smile', 'happy', 'blush', 'face'],
+  '😍': ['love', 'heart', 'eyes', 'face'],
+  '🤩': ['star', 'excited', 'face'],
+  '😘': ['kiss', 'love', 'face'],
+  '😗': ['kiss', 'face'],
+  '🤔': ['think', 'question', 'face'],
+  '😌': ['relief', 'calm', 'face'],
+  '😎': ['cool', 'sunglasses', 'face'],
+  '🥳': ['party', 'celebrate', 'face'],
+  '🤝': ['handshake', 'team', 'deal'],
+  '🙌': ['hands', 'celebrate', 'win'],
+  '👏': ['clap', 'applause', 'done'],
+  '💪': ['strong', 'strength', 'muscle'],
+  '🏢': ['office', 'building', 'company'],
+  '🎯': ['target', 'goal', 'focus'],
+  '💡': ['idea', 'lightbulb', 'insight'],
+  '🔥': ['fire', 'hot', 'streak', 'urgent'],
+  '⭐': ['star', 'favorite', 'important'],
+  '🔑': ['key', 'access', 'secret'],
+  '💎': ['gem', 'diamond', 'premium'],
+  '🧭': ['compass', 'direction', 'navigation'],
+  '📈': ['chart', 'growth', 'up', 'trend'],
+  '📉': ['chart', 'down', 'trend'],
+  '📊': ['chart', 'report', 'analytics'],
+  '💻': ['computer', 'laptop', 'code', 'development', 'dev'],
+  '🖥️': ['computer', 'desktop', 'monitor', 'screen'],
+  '🔧': ['tool', 'wrench', 'fix'],
+  '⚙️': ['gear', 'settings', 'config'],
+  '🐛': ['bug', 'debug', 'issue'],
+  '🔍': ['search', 'find', 'inspect'],
+  '🧪': ['test', 'experiment', 'lab'],
+  '🧬': ['dna', 'science', 'experiment'],
+  '🛰️': ['satellite', 'space', 'remote'],
+  '⌨️': ['keyboard', 'computer', 'type'],
+  '🖱️': ['mouse', 'computer', 'click'],
+  '🔒': ['lock', 'security', 'private'],
+  '🧱': ['brick', 'block', 'build'],
+  '📁': ['folder', 'project', 'file'],
+  '📂': ['folder', 'open', 'project'],
+  '🗃️': ['archive', 'box', 'files'],
+  '📋': ['clipboard', 'list', 'tasks'],
+  '📄': ['document', 'file', 'page'],
+  '📑': ['tabs', 'document', 'files'],
+  '🗒️': ['notepad', 'notes'],
+  '📔': ['notebook', 'book', 'notes'],
+  '📓': ['notebook', 'notes'],
+  '🗄️': ['cabinet', 'archive', 'database'],
+  '🧾': ['receipt', 'invoice', 'paper'],
+  '📎': ['paperclip', 'attach'],
+  '🗂️': ['files', 'folder', 'organize'],
+  '🪄': ['magic', 'sparkle', 'wizard'],
+  '🎨': ['art', 'design', 'palette'],
+  '✏️': ['pencil', 'write', 'edit'],
+  '🖌️': ['paint', 'brush', 'design'],
+  '🧵': ['thread', 'string'],
+  '🧲': ['magnet', 'attract'],
+  '🕹️': ['joystick', 'game'],
+  '🎧': ['headphones', 'audio', 'music'],
+  '📷': ['camera', 'photo'],
+  '📱': ['phone', 'mobile'],
+  '🕰️': ['clock', 'time'],
+  '📡': ['antenna', 'signal'],
+  '🔋': ['battery', 'power'],
+  '💿': ['disc', 'storage'],
+  '🔔': ['bell', 'notification'],
+  '🕯️': ['candle', 'light'],
+  '🧰': ['toolbox', 'tools'],
+  '🌱': ['plant', 'seed', 'growth'],
+  '🌿': ['herb', 'leaf', 'nature'],
+  '🍃': ['leaf', 'nature'],
+  '🌲': ['tree', 'nature'],
+  '🌸': ['flower', 'spring'],
+  '🌺': ['flower', 'hibiscus'],
+  '🌻': ['sunflower', 'flower'],
+  '🌙': ['moon', 'night'],
+  '☀️': ['sun', 'day'],
+  '🌊': ['wave', 'water', 'sea'],
+  '🌍': ['earth', 'world', 'globe'],
+  '🌈': ['rainbow', 'color'],
+  '🌩️': ['storm', 'lightning'],
+  '❄️': ['snow', 'cold'],
+  '🍀': ['clover', 'luck'],
+}
+
+function emojiMatchesQuery(emoji: string, groupLabel: string, query: string): boolean {
+  const keywords = EMOJI_KEYWORDS[emoji] ?? []
+  return (
+    emoji.includes(query) ||
+    groupLabel.toLowerCase().includes(query) ||
+    keywords.some((keyword) => keyword.includes(query))
+  )
+}
 
 function EmojiGrid({
   groups,

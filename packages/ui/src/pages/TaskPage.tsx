@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Play, Clock, Flag, Layers } from 'lucide-react'
-import type { Task } from '@time-foundry/core'
+import { AlarmClock, ArrowLeft, Play, Clock, Flag, Hourglass, Layers } from 'lucide-react'
+import type { Task, TimerMode } from '@time-foundry/core'
 import { useAppStore } from '../stores/app.store'
 import { useUIStore } from '../stores/ui.store'
 import { RichTextEditor } from '../components/editor/RichTextEditor'
@@ -60,6 +60,11 @@ export function TaskPage({ taskId }: TaskPageProps) {
       loadActualMinutes()
     }
   }, [timerState.status, loadActualMinutes])
+
+  useEffect(() => {
+    window.addEventListener('time-foundry:sessions-updated', loadActualMinutes)
+    return () => window.removeEventListener('time-foundry:sessions-updated', loadActualMinutes)
+  }, [loadActualMinutes])
 
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(task?.title ?? '')
@@ -262,6 +267,33 @@ export function TaskPage({ taskId }: TaskPageProps) {
                     : <span className="text-muted-foreground">Not set</span>}
                 </div>
               )}
+            </div>
+
+            {/* Timer mode */}
+            <div className="space-y-1">
+              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                {task.timerMode === 'free' ? <Hourglass className="h-3 w-3" /> : <AlarmClock className="h-3 w-3" />}
+                Timer mode
+              </p>
+              <Select value={task.timerMode} onValueChange={(v) => updateTask(taskId, { timerMode: v as TimerMode })}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pomodoro">
+                    <span className="flex items-center gap-1.5">
+                      <AlarmClock className="h-3.5 w-3.5" />
+                      Pomodoro
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="free">
+                    <span className="flex items-center gap-1.5">
+                      <Hourglass className="h-3.5 w-3.5" />
+                      Free timer
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Actual time */}

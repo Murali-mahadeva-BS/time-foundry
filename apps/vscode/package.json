@@ -1,8 +1,8 @@
 {
   "name": "time-foundry",
   "displayName": "Time Foundry",
-  "description": "Pomodoro timer and task manager for developers",
-  "version": "0.1.1",
+  "description": "Local-first Pomodoro timer, task manager, and focus tracker for developers.",
+  "version": "0.1.2",
   "publisher": "CodeSethu",
   "icon": "icon.png",
   "license": "MIT",
@@ -20,53 +20,105 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "pomodoro",
+    "timer",
+    "focus",
+    "tasks",
+    "task manager",
+    "time tracking",
+    "productivity",
+    "local first"
+  ],
+  "galleryBanner": {
+    "color": "#1A2029",
+    "theme": "dark"
+  },
+  "qna": false,
+  "pricing": "Free",
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
+  },
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:timeFoundry.open",
-    "onCommand:timeFoundry.startTimer"
+    "onCommand:timeFoundry.startTimer",
+    "onCommand:timeFoundry.pauseTimer",
+    "onCommand:timeFoundry.resumeTimer",
+    "onCommand:timeFoundry.stopTimer",
+    "onCommand:timeFoundry.exportData",
+    "onCommand:timeFoundry.importData"
   ],
   "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "timeFoundry.open",
-        "title": "Time Foundry: Open"
+        "title": "Open",
+        "category": "Time Foundry"
       },
       {
         "command": "timeFoundry.startTimer",
-        "title": "Time Foundry: Start Timer"
-      }
-    ],
-    "keybindings": [
+        "title": "Start Timer",
+        "category": "Time Foundry"
+      },
       {
-        "command": "timeFoundry.open",
-        "key": "ctrl+shift+p",
-        "mac": "cmd+shift+p",
-        "when": "false"
+        "command": "timeFoundry.pauseTimer",
+        "title": "Pause Timer",
+        "category": "Time Foundry"
+      },
+      {
+        "command": "timeFoundry.resumeTimer",
+        "title": "Resume Timer",
+        "category": "Time Foundry"
+      },
+      {
+        "command": "timeFoundry.stopTimer",
+        "title": "Stop Timer",
+        "category": "Time Foundry"
+      },
+      {
+        "command": "timeFoundry.exportData",
+        "title": "Export Data",
+        "category": "Time Foundry"
+      },
+      {
+        "command": "timeFoundry.importData",
+        "title": "Import Data",
+        "category": "Time Foundry"
       }
     ]
   },
   "scripts": {
+    "vscode:prepublish": "pnpm run build",
     "build": "pnpm run build:ext && pnpm run build:webview",
-    "build:ext": "tsc -p extension/tsconfig.json",
+    "build:ext": "tsc -b extension/tsconfig.json && node scripts/build-extension.mjs",
     "build:webview": "vite build --config webview/vite.config.ts",
     "dev": "pnpm run dev:webview",
     "dev:webview": "vite --config webview/vite.config.ts",
-    "watch:ext": "tsc -p extension/tsconfig.json --watch",
+    "watch:ext": "pnpm exec esbuild extension/src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension/extension.js --watch",
     "watch:webview": "vite build --watch --config webview/vite.config.ts",
-    "package": "vsce package --no-dependencies"
-  },
-  "dependencies": {
-    "@time-foundry/core": "workspace:*",
-    "@time-foundry/ui": "workspace:*"
+    "package": "pnpm run build && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@time-foundry/core": "workspace:*",
+    "@time-foundry/ui": "workspace:*",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
     "@vitejs/plugin-react": "^6.0.0",
     "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.28.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.1",

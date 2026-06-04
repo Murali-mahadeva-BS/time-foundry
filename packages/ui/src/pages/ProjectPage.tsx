@@ -24,6 +24,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   const timerStatus = useTimerStore((s) => s.state.status)
 
   const [actualMinutesMap, setActualMinutesMap] = useState<Record<string, number>>({})
+  const [sessionVersion, setSessionVersion] = useState(0)
 
   const project = projects.find((p) => p.id === projectId)
 
@@ -43,7 +44,13 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
         }
         setActualMinutesMap(map)
       })
-  }, [projectId, tasks.length, timerStatus])
+  }, [projectId, tasks.length, timerStatus, sessionVersion])
+
+  useEffect(() => {
+    const refreshSessions = () => setSessionVersion((v) => v + 1)
+    window.addEventListener('time-foundry:sessions-updated', refreshSessions)
+    return () => window.removeEventListener('time-foundry:sessions-updated', refreshSessions)
+  }, [])
 
   if (!project) return null
 

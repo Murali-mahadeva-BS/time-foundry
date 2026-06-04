@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
-import { Play, Trash2, Plus, GripVertical } from 'lucide-react'
-import type { Task, Project } from '@time-foundry/core'
+import { AlarmClock, Hourglass, Play, Trash2, Plus, GripVertical } from 'lucide-react'
+import type { Task, Project, TimerMode } from '@time-foundry/core'
 import { useAppStore } from '../../stores/app.store'
+import { useSettingsStore } from '@ui/stores/settings.store'
 import { useTimerStore } from '@ui/stores/timer.store'
 import { Button } from '../ui/button'
 import {
@@ -54,6 +55,7 @@ export function TaskTable({
   const updateTask = useAppStore((s) => s.updateTask)
   const deleteTask = useAppStore((s) => s.deleteTask)
   const { startWork, state: timerState } = useTimerStore()
+  const defaultTimerMode = useSettingsStore((s) => s.settings.defaultTimerMode)
 
   const [addingTitle, setAddingTitle] = useState('')
   const [showAdd, setShowAdd] = useState(false)
@@ -73,13 +75,13 @@ export function TaskTable({
       listId,
       title: trimmed,
       estimatedMinutes: 0,
-      timerMode: 'pomodoro',
+      timerMode: defaultTimerMode,
       priority: 'medium',
       statusId: project.statuses[0]?.id ?? '',
     })
     setAddingTitle('')
     setTimeout(() => addInputRef.current?.focus(), 50)
-  }, [addingTitle, createTask, listId, project.id, project.statuses])
+  }, [addingTitle, createTask, defaultTimerMode, listId, project.id, project.statuses])
 
   const handleDrop = useCallback(async (targetId: string) => {
     if (!draggedId || draggedId === targetId) return
@@ -115,6 +117,7 @@ export function TaskTable({
             <th className="w-24 py-2 text-left font-medium">Priority</th>
             <th className="w-20 py-2 text-left font-medium">Estimate</th>
             <th className="w-20 py-2 text-left font-medium">Actual</th>
+            <th className="w-28 py-2 text-left font-medium">Timer</th>
             <th className="w-16 py-2" />
           </tr>
         </thead>
@@ -133,7 +136,7 @@ export function TaskTable({
               onSelect={() => onSelectTask(task.id)}
               onUpdate={(data) => updateTask(task.id, data)}
               onDelete={() => deleteTask(task.id)}
-              onStartTimer={() => !timerRunning && startWork(task.id, task.estimatedMinutes)}
+              onStartTimer={() => !timerRunning && startWork(task.id, task.estimatedMinutes, task.timerMode)}
               onDragStart={() => setDraggedId(task.id)}
               onDragOver={() => setDragOverId(task.id)}
               onDragEnd={() => { setDraggedId(null); setDragOverId(null) }}
@@ -228,6 +231,7 @@ function TaskRow({
   }
 
   const status = project.statuses.find((s) => s.id === task.statusId)
+  const missingFreeEstimate = task.timerMode === 'free' && task.estimatedMinutes <= 0 && !isActiveTimer
 
   return (
     <tr
@@ -365,6 +369,32 @@ function TaskRow({
         </span>
       </td>
 
+      {/* Timer mode */}
+      <td className="w-28 py-1.5 pr-2">
+        <Select value={task.timerMode} onValueChange={(v) => onUpdate({ timerMode: v as TimerMode })}>
+          <SelectTrigger className="h-7 border-none bg-transparent px-1.5 text-xs shadow-none hover:bg-accent focus:ring-0">
+            <div className="flex items-center gap-1.5">
+              {task.timerMode === 'free' ? <Hourglass className="h-3 w-3" /> : <AlarmClock className="h-3 w-3" />}
+              <span>{task.timerMode === 'free' ? 'Free' : 'Pomodoro'}</span>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pomodoro">
+              <span className="flex items-center gap-1.5">
+                <AlarmClock className="h-3.5 w-3.5" />
+                Pomodoro
+              </span>
+            </SelectItem>
+            <SelectItem value="free">
+              <span className="flex items-center gap-1.5">
+                <Hourglass className="h-3.5 w-3.5" />
+                Free timer
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </td>
+
       {/* Actions */}
       <td className="w-16 py-2 pr-2">
         <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
@@ -374,10 +404,10 @@ function TaskRow({
             className={cn(
               'h-6 w-6',
               isActiveTimer ? 'text-primary' : 'text-muted-foreground hover:text-primary',
-              timerRunning && !isActiveTimer && 'opacity-30',
+              (timerRunning && !isActiveTimer) || missingFreeEstimate ? 'opacity-30' : '',
             )}
             onClick={(e) => { e.stopPropagation(); onStartTimer() }}
-            disabled={timerRunning && !isActiveTimer}
+            disabled={(timerRunning && !isActiveTimer) || missingFreeEstimate}
           >
             <Play className="h-3 w-3" />
           </Button>

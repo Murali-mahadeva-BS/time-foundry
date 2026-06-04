@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Settings, Moon, Sun, Monitor, Clock, Coffee, Zap, Timer, SkipForward, Palette, AlarmClock, Hourglass } from 'lucide-react'
+import { Settings, Moon, Sun, Monitor, Clock, Coffee, Zap, Timer, SkipForward, Palette, AlarmClock, Hourglass, Download, Upload } from 'lucide-react'
 import { useSettingsStore } from '@ui/stores/settings.store'
 import type { Theme, ColorTheme, TimerMode } from '@time-foundry/core'
 import { Label } from '../ui/label'
@@ -15,11 +15,13 @@ function SettingRow({ label, description, children }: {
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <div className="space-y-0.5">
+      <div className="min-w-0 space-y-0.5">
         <Label>{label}</Label>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
-      {children}
+      <div className="flex w-56 shrink-0 justify-end">
+        {children}
+      </div>
     </div>
   )
 }
@@ -47,7 +49,7 @@ function ClampedNumberInput({ value, onChange, suffix, min = 1, max = 120 }: {
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="grid w-40 grid-cols-[5rem_1fr] items-center gap-3">
       <Input
         type="number"
         min={min}
@@ -62,6 +64,36 @@ function ClampedNumberInput({ value, onChange, suffix, min = 1, max = 120 }: {
         className="w-20 text-center"
       />
       <span className="text-sm text-muted-foreground">{suffix}</span>
+    </div>
+  )
+}
+
+function TimerNumberControl({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="grid w-52 grid-cols-[1rem_1fr] items-center gap-4">
+      <span className="flex h-4 w-4 items-center justify-center">{icon}</span>
+      {children}
+    </div>
+  )
+}
+
+function TimerSwitchControl({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex w-52 items-center justify-between">
+      <span className="flex h-4 w-4 items-center justify-center">{icon}</span>
+      {children}
     </div>
   )
 }
@@ -134,9 +166,15 @@ const COLOR_THEMES: ColorThemeDef[] = [
   },
 ]
 
-export function SettingsPanel() {
+export interface SettingsPanelDataActions {
+  onExportData?: () => void
+  onImportData?: () => void
+}
+
+export function SettingsPanel({ dataActions }: { dataActions?: SettingsPanelDataActions } = {}) {
   const { settings, update } = useSettingsStore()
   const [customInput, setCustomInput] = useState(settings.customPrimary ?? '#30BCED')
+  const hasDataActions = Boolean(dataActions?.onExportData || dataActions?.onImportData)
 
   const handleCustomApply = () => {
     if (/^#[0-9a-fA-F]{6}$/.test(customInput)) {
@@ -286,29 +324,25 @@ export function SettingsPanel() {
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pomodoro Settings</h2>
 
             <SettingRow label="Work session" description="Duration of each focus session">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
+              <TimerNumberControl icon={<Zap className="h-4 w-4 text-primary" />}>
                 <DurationInput value={settings.workDuration} onChange={(v) => update({ workDuration: v })} />
-              </div>
+              </TimerNumberControl>
             </SettingRow>
 
             <SettingRow label="Short break" description="Break after each work session">
-              <div className="flex items-center gap-2">
-                <Coffee className="h-4 w-4 text-emerald-500" />
+              <TimerNumberControl icon={<Coffee className="h-4 w-4 text-emerald-500" />}>
                 <DurationInput value={settings.shortBreakDuration} onChange={(v) => update({ shortBreakDuration: v })} />
-              </div>
+              </TimerNumberControl>
             </SettingRow>
 
             <SettingRow label="Long break" description="Extended break after N sessions">
-              <div className="flex items-center gap-2">
-                <Coffee className="h-4 w-4 text-violet-500" />
+              <TimerNumberControl icon={<Coffee className="h-4 w-4 text-violet-500" />}>
                 <DurationInput value={settings.longBreakDuration} onChange={(v) => update({ longBreakDuration: v })} />
-              </div>
+              </TimerNumberControl>
             </SettingRow>
 
             <SettingRow label="Long break after" description="Number of sessions before a long break">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+              <TimerNumberControl icon={<Clock className="h-4 w-4 text-muted-foreground" />}>
                 <ClampedNumberInput
                   value={settings.longBreakAfter}
                   onChange={(v) => update({ longBreakAfter: v })}
@@ -316,14 +350,13 @@ export function SettingsPanel() {
                   max={10}
                   suffix="sessions"
                 />
-              </div>
+              </TimerNumberControl>
             </SettingRow>
 
             <SettingRow label="Skip breaks" description="Automatically skip breaks and go straight to the next session">
-              <div className="flex items-center gap-2">
-                <SkipForward className={cn('h-4 w-4', settings.skipBreaks ? 'text-primary' : 'text-muted-foreground')} />
+              <TimerSwitchControl icon={<SkipForward className={cn('h-4 w-4', settings.skipBreaks ? 'text-primary' : 'text-muted-foreground')} />}>
                 <Switch checked={settings.skipBreaks} onCheckedChange={(v) => update({ skipBreaks: v })} />
-              </div>
+              </TimerSwitchControl>
             </SettingRow>
           </section>
 
@@ -333,14 +366,45 @@ export function SettingsPanel() {
           <section className="space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Idle Detection</h2>
             <SettingRow label="Idle threshold" description="Pause timer when inactive for this long">
-              <div className="flex items-center gap-2">
-                <Timer className="h-4 w-4 text-muted-foreground" />
+              <TimerNumberControl icon={<Timer className="h-4 w-4 text-muted-foreground" />}>
                 <DurationInput value={settings.idleThresholdMinutes} onChange={(v) => update({ idleThresholdMinutes: v })} min={1} max={30} />
-              </div>
+              </TimerNumberControl>
             </SettingRow>
           </section>
 
           <Separator />
+
+          {hasDataActions && (
+            <>
+              <section className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Data</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  {dataActions?.onExportData && (
+                    <button
+                      type="button"
+                      onClick={dataActions.onExportData}
+                      className="flex items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export JSON
+                    </button>
+                  )}
+                  {dataActions?.onImportData && (
+                    <button
+                      type="button"
+                      onClick={dataActions.onImportData}
+                      className="flex items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Import JSON
+                    </button>
+                  )}
+                </div>
+              </section>
+
+              <Separator />
+            </>
+          )}
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">About</h2>

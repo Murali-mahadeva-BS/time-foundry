@@ -31,6 +31,14 @@ interface HourStat {
 
 function useSessions(range: Range) {
   const [sessions, setSessions] = useState<PomodoroSession[]>([])
+  const [sessionVersion, setSessionVersion] = useState(0)
+
+  useEffect(() => {
+    const refreshSessions = () => setSessionVersion((v) => v + 1)
+    window.addEventListener('time-foundry:sessions-updated', refreshSessions)
+    return () => window.removeEventListener('time-foundry:sessions-updated', refreshSessions)
+  }, [])
+
   useEffect(() => {
     const now = new Date()
     const bounds =
@@ -49,7 +57,7 @@ function useSessions(range: Range) {
           .map((s) => ({ ...s, timerMode: s.timerMode ?? 'pomodoro' }) as PomodoroSession)
         setSessions(normalized)
       })
-  }, [range])
+  }, [range, sessionVersion])
   return sessions
 }
 

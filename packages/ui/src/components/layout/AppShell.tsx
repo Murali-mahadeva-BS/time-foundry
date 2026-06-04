@@ -5,12 +5,15 @@ import { ProjectPage } from '../../pages/ProjectPage'
 import { TaskPage } from '../../pages/TaskPage'
 import { ReportsPage } from '../../pages/ReportsPage'
 import { SettingsPanel } from '../settings/SettingsPanel'
+import type { SettingsPanelDataActions } from '../settings/SettingsPanel'
 import { FeedbackPage } from '../../pages/FeedbackPage'
 import { useUIStore } from '../../stores/ui.store'
 import { useAppStore } from '../../stores/app.store'
 import { FolderOpen } from 'lucide-react'
 
-export function AppShell() {
+export function AppShell({ settingsDataActions }: {
+  settingsDataActions?: SettingsPanelDataActions
+} = {}) {
   const { selectedView, selectedProjectId, selectedTaskId } = useUIStore()
   const projects = useAppStore((s) => s.projects)
 
@@ -19,7 +22,7 @@ export function AppShell() {
     if (selectedTaskId) return <TaskPage taskId={selectedTaskId} />
 
     if (selectedView === 'reports') return <ReportsPage />
-    if (selectedView === 'settings') return <SettingsPanel />
+    if (selectedView === 'settings') return <SettingsPanel dataActions={settingsDataActions} />
     if (selectedView === 'feedback') return <FeedbackPage />
 
     if (!selectedProjectId || !projects.find((p) => p.id === selectedProjectId)) {

@@ -123,8 +123,7 @@ export function FeedbackPage() {
         <div>
           <h1 className="text-xl font-semibold">Feedback / Contact</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Time Foundry is built by one developer. Your feedback directly
-            shapes what gets fixed and built next.
+            Your feedback directly shapes what gets fixed and built next.
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, MoreHorizontal, Pencil, Trash2, FileText, Clock } from 'lucide-react'
+import { AlarmClock, Hourglass, Play, MoreHorizontal, Pencil, Trash2, FileText, Clock } from 'lucide-react'
 import type { Task, Project } from '@time-foundry/core'
 import { useAppStore } from '../../stores/app.store'
 import { useTimerStore } from '@ui/stores/timer.store'
@@ -54,6 +54,8 @@ export function TaskCard({ task, project }: TaskCardProps) {
   const status = project.statuses.find((s) => s.id === task.statusId)
   const priorityConfig = PRIORITY_CONFIG[task.priority]
   const isActiveTask = timerState.taskId === task.id && timerState.status !== 'idle'
+  const timerRunning = timerState.status !== 'idle'
+  const missingFreeEstimate = task.timerMode === 'free' && task.estimatedMinutes <= 0 && !isActiveTask
 
   return (
     <>
@@ -98,6 +100,11 @@ export function TaskCard({ task, project }: TaskCardProps) {
                 {formatDuration(task.estimatedMinutes)}
               </div>
             )}
+
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {task.timerMode === 'free' ? <Hourglass className="h-3 w-3" /> : <AlarmClock className="h-3 w-3" />}
+              {task.timerMode === 'free' ? 'Free' : 'Pomodoro'}
+            </div>
           </div>
         </div>
 
@@ -109,13 +116,19 @@ export function TaskCard({ task, project }: TaskCardProps) {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-primary"
-                onClick={() => startWork(task.id, task.estimatedMinutes)}
-                disabled={isActiveTask}
+                onClick={() => startWork(task.id, task.estimatedMinutes, task.timerMode)}
+                disabled={isActiveTask || (timerRunning && !isActiveTask) || missingFreeEstimate}
               >
                 <Play className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Start Pomodoro</TooltipContent>
+            <TooltipContent>
+              {missingFreeEstimate
+                ? 'Set an estimate to start free timer'
+                : task.timerMode === 'free'
+                  ? 'Start free timer'
+                  : 'Start Pomodoro'}
+            </TooltipContent>
           </Tooltip>
 
           <DropdownMenu>

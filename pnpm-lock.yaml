@@ -178,17 +178,16 @@ importers:
         version: 5.9.3
 
   apps/vscode:
-    dependencies:
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.2.1
+        version: 4.3.0(vite@8.0.13(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.22.3))
       '@time-foundry/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@time-foundry/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-    devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.2.1
-        version: 4.3.0(vite@8.0.13(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.22.3))
       '@types/node':
         specifier: ^24.12.0
         version: 24.12.4
@@ -207,6 +206,9 @@ importers:
       '@vscode/vsce':
         specifier: ^3.6.0
         version: 3.9.1
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
       react:
         specifier: ^19.2.4
         version: 19.2.6

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { StorageAdapter, TimerState, SessionType, TimerMode } from '@time-foundry/core'
+import type { StorageAdapter, TimerState, SessionType, TimerMode } from '@time-foundry/core/extension'
 import {
   computeStartTimer,
   computePauseTimer,
@@ -10,12 +10,13 @@ import {
   computeStopTimer,
   buildPendingSession,
   checkEstimateExceeded,
-} from '@time-foundry/core'
+} from '@time-foundry/core/extension'
 
 export class TimerHost {
   private _interval: NodeJS.Timeout | undefined
   private _tickInterval: NodeJS.Timeout | undefined
   private _listeners: Array<(state: TimerState) => void> = []
+  private _sessionListeners: Array<() => void> = []
 
   constructor(
     readonly storage: StorageAdapter,
@@ -25,14 +26,23 @@ export class TimerHost {
     this._interval = setInterval(() => void this._checkEstimate(), 15000)
     // Tick every second to push state updates to webview
     this._tickInterval = setInterval(() => void this._tick(), 1000)
+    void this._restoreActiveTimer()
   }
 
   onStateChange(cb: (state: TimerState) => void): void {
     this._listeners.push(cb)
   }
 
+  onSessionsLogged(cb: () => void): void {
+    this._sessionListeners.push(cb)
+  }
+
   private _emit(state: TimerState) {
     for (const cb of this._listeners) cb(state)
+  }
+
+  private _emitSessionsLogged() {
+    for (const cb of this._sessionListeners) cb()
   }
 
   // ── Public timer commands ─────────────────────────────────────────────────
@@ -118,6 +128,10 @@ export class TimerHost {
     return this.storage.getTimerState()
   }
 
+  async refresh(): Promise<void> {
+    this._emit(await this.storage.getTimerState())
+  }
+
   // ── Internal ──────────────────────────────────────────────────────────────
 
   private _alarmTimeout: NodeJS.Timeout | undefined
@@ -158,6 +172,21 @@ export class TimerHost {
     this._emit(state)
   }
 
+  private async _restoreActiveTimer() {
+    const state = await this.storage.getTimerState()
+    if ((state.status === 'running' || state.status === 'break') && state.endTime) {
+      if (state.endTime <= Date.now()) {
+        await this._onAlarm()
+      } else {
+        this._scheduleAlarm(state.endTime)
+        this._emit(state)
+      }
+      return
+    }
+
+    this._emit(state)
+  }
+
   private async _checkEstimate() {
     const [state, taskSessionMinutes] = await Promise.all([
       this.storage.getTimerState(),
@@ -181,6 +210,7 @@ export class TimerHost {
       this.storage.savePendingSessions(pending),
       this.storage.saveTaskSessionMinutes(taskMinutes),
     ])
+    this._emitSessionsLogged()
   }
 
   dispose() {

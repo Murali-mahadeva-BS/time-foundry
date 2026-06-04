@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Play, Clock, Flag, AlignLeft, Layers } from 'lucide-react'
-import type { Task, Project } from '@time-foundry/core'
+import { X, AlarmClock, Play, Clock, Flag, AlignLeft, Hourglass, Layers } from 'lucide-react'
+import type { Task, Project, TimerMode } from '@time-foundry/core'
 import { useAppStore } from '../../stores/app.store'
 import { useTimerStore } from '@ui/stores/timer.store'
 import { RichTextEditor } from '../editor/RichTextEditor'
@@ -53,6 +53,7 @@ export function TaskDetailPanel({ task, project, onClose }: TaskDetailPanelProps
   const isActiveTask = timerState.taskId === task.id && timerState.status !== 'idle'
   const timerRunning = timerState.status !== 'idle'
   const status = project.statuses.find((s) => s.id === task.statusId)
+  const missingFreeEstimate = task.timerMode === 'free' && task.estimatedMinutes <= 0 && !isActiveTask
 
   const saveTitle = () => {
     const trimmed = title.trim()
@@ -118,13 +119,22 @@ export function TaskDetailPanel({ task, project, onClose }: TaskDetailPanelProps
               'gap-1.5 transition-all',
               isActiveTask && 'bg-primary/20 text-primary border border-primary/30',
             )}
-            onClick={() => !timerRunning && startWork(task.id, task.estimatedMinutes)}
-            disabled={timerRunning && !isActiveTask}
+            onClick={() => !timerRunning && startWork(task.id, task.estimatedMinutes, task.timerMode)}
+            disabled={(timerRunning && !isActiveTask) || missingFreeEstimate}
             variant={isActiveTask ? 'outline' : 'default'}
           >
             <Play className="h-3.5 w-3.5" />
-            {isActiveTask ? 'Timer running' : timerRunning ? 'Timer busy' : 'Start Pomodoro'}
+            {isActiveTask
+              ? 'Timer running'
+              : timerRunning
+                ? 'Timer busy'
+                : task.timerMode === 'free'
+                  ? 'Start free timer'
+                  : 'Start Pomodoro'}
           </Button>
+          {missingFreeEstimate && (
+            <span className="text-xs text-amber-500">Set an estimate to start free timer</span>
+          )}
         </div>
 
         {/* Metadata grid */}
@@ -226,6 +236,33 @@ export function TaskDetailPanel({ task, project, onClose }: TaskDetailPanelProps
                 </Badge>
               )}
             </div>
+          </div>
+
+          {/* Timer mode */}
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              {task.timerMode === 'free' ? <Hourglass className="h-3 w-3" /> : <AlarmClock className="h-3 w-3" />}
+              Timer mode
+            </p>
+            <Select value={task.timerMode} onValueChange={(v) => updateTask(task.id, { timerMode: v as TimerMode })}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pomodoro">
+                  <span className="flex items-center gap-1.5">
+                    <AlarmClock className="h-3.5 w-3.5" />
+                    Pomodoro
+                  </span>
+                </SelectItem>
+                <SelectItem value="free">
+                  <span className="flex items-center gap-1.5">
+                    <Hourglass className="h-3.5 w-3.5" />
+                    Free timer
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

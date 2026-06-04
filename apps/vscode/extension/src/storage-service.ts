@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
-import type { StorageAdapter, TimerState, Settings, PomodoroSession } from '@time-foundry/core'
-import { DEFAULT_SETTINGS, DEFAULT_TIMER } from '@time-foundry/core'
+import type { StorageAdapter, TimerState, Settings, PomodoroSession } from '@time-foundry/core/extension'
+import { DEFAULT_SETTINGS, DEFAULT_TIMER } from '@time-foundry/core/extension'
 
 const KEYS = {
   timerState: 'timerState',
