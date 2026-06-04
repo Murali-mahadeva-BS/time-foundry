@@ -2,7 +2,7 @@
   "name": "time-foundry",
   "displayName": "Time Foundry",
   "description": "Local-first Pomodoro timer, task manager, and focus tracker for developers.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "CodeSethu",
   "icon": "icon.png",
   "license": "MIT",

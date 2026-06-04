@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2
+## 0.2.0
 
 - Added persistent status bar countdown with quick pause, resume, and stop controls.
 - Added task-level Pomodoro vs free timer mode selection.
@@ -10,10 +10,6 @@
 - Bundled the extension host output for reliable Marketplace installs.
 - Refreshed Marketplace metadata and README content.
 - Improved settings alignment, feedback copy, and emoji/icon picker search and scrolling.
-
-## 0.1.1
-
-- Initial Marketplace package updates.
 
 ## 0.1.0
 
